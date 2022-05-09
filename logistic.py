@@ -15,10 +15,10 @@ class CustomLogisticRegression:
         self.l_rate = l_rate
         self.n_epoch = n_epoch
         self.coef_ = []
-        self.mse_error_first = []
-        self.mse_error_last = []
-        self.log_loss_error_first = []
-        self.log_loss_error_last = []
+        self.mse_error_first = []  # mean square error (MSE) during the first epoch of learning (EOL)
+        self.mse_error_last = []  # MSE during the last EOL
+        self.log_loss_error_first = []  # log-loss function  during the first EOL
+        self.log_loss_error_last = []  # log-loss function  during the last EOL
 
     def sigmoid(self, t):
         return 1 / (1 + math.exp(-t))
