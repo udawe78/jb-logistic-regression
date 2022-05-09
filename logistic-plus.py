@@ -1,4 +1,4 @@
-# This models make predictions of the cancer tumor type (malignant or benign)
+# These models make predictions of the cancer tumor type (malignant or benign)
 # based on three diagnostic parameters: 'worst concave points', 'worst perimeter', 'worst radius'.
 # The models are trained on the Breast cancer wisconsin (diagnostic) dataset by gradient descent.
 
