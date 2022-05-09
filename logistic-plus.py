@@ -21,8 +21,8 @@ class CustomLogisticRegression:
         self.n_epoch = n_epoch
         self.weights = []
 
-    def predict_proba(self, row, coef_):
-        t = np.dot(row, coef_)
+    def predict_proba(self, row, weights):
+        t = np.dot(row, weights)
         proba = 1 / (1 + math.exp(-t))
         return proba
 
@@ -90,7 +90,7 @@ class CustomLogisticRegression:
 used_params = ['worst concave points', 'worst perimeter', 'worst radius']
 params_values = [float(input(f"Enter the value of the parameter '{i}': ")) for i in used_params]
 params_values = dict(zip(used_params, params_values))
-params_values = pd.DataFrame(data=params_values, index=[0])
+params_values = pd.DataFrame(params_values, index=[0])
 print('\nUSED PARAMETERS:', params_values, sep='\n')
 
 # load training dataset
@@ -131,7 +131,7 @@ predicts.append(lr.predict(params_values))
 
 # output the result as Dataframe
 result = {'predict': predicts, 'accuracy': accuracies}
-result = pd.DataFrame(data=result, index=['mse', 'log-loss', 'sklearn'])
+result = pd.DataFrame(result, index=['mse', 'log-loss', 'sklearn'])
 
 print('\nRESULT:\n', result)
 print('\nwhere: [0] - MALIGNANT, [1] - BENIGN')
