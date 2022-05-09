@@ -1,3 +1,8 @@
+# This models make predictions of the cancer tumor type (malignant or benign)
+# based on three diagnostic parameters: 'worst concave points', 'worst perimeter', 'worst radius'.
+# The models are trained on the Breast cancer wisconsin (diagnostic) dataset by gradient descent.
+
+
 import math
 import numpy as np
 import pandas as pd
@@ -14,144 +19,119 @@ class CustomLogisticRegression:
         self.fit_intercept = fit_intercept
         self.l_rate = l_rate
         self.n_epoch = n_epoch
-        self.coef_ = []
-        self.mse_error_first = []  # mean square error (MSE) during the first epoch of learning (EOL)
-        self.mse_error_last = []  # MSE during the last EOL
-        self.log_loss_error_first = []  # log-loss function  during the first EOL
-        self.log_loss_error_last = []  # log-loss function  during the last EOL
-
-    def sigmoid(self, t):
-        return 1 / (1 + math.exp(-t))
+        self.weights = []
 
     def predict_proba(self, row, coef_):
         t = np.dot(row, coef_)
-        return self.sigmoid(t)
+        proba = 1 / (1 + math.exp(-t))
+        return proba
 
-    def fit_mse(self, X_train, y_train):
-        x_train = X_train.copy()
+    def fit_mse(self, x_train, y_train):
+        x_train = x_train.copy()
 
         if self.fit_intercept:
             x_train.insert(0, 'x_0', 1.0)
 
         # initialize weights
-        coef_ = [0 for _ in range(x_train.shape[1])]
-
-        n = x_train.shape[0]
+        weights = [0 for _ in range(x_train.shape[1])]
 
         # fit the model
         for num_of_epoch in range(self.n_epoch):
             for i, row in x_train.iterrows():
 
-                y_hat = self.predict_proba(row, coef_)
-
-                if num_of_epoch == 0:
-                    self.mse_error_first.append(((y_hat - y_train[i]) ** 2) / n)
-
-                if num_of_epoch == self.n_epoch - 1:
-                    self.mse_error_last.append(((y_hat - y_train[i]) ** 2) / n)
+                y_hat = self.predict_proba(row, weights)
 
                 # update all weights
                 for j, x in enumerate(row):
-                    coef_[j] -= self.l_rate * (y_hat - y_train[i]) * y_hat * (1 - y_hat) * x
+                    weights[j] -= self.l_rate * (y_hat - y_train[i]) * y_hat * (1 - y_hat) * x
 
-        # redefine weights
-        self.coef_ = coef_
+        self.weights = weights  # redefine weights
 
-    def fit_log_loss(self, X_train, y_train):
-        x_train = X_train.copy()
+    def fit_log_loss(self, x_train, y_train):
+        x_train = x_train.copy()
 
         if self.fit_intercept:
             x_train.insert(0, 'x_0', 1.0)
 
         # initialized weights
-        coef_ = [0 for _ in range(x_train.shape[1])]
+        weights = [0 for _ in range(x_train.shape[1])]
 
         n = x_train.shape[0]
 
         for num_of_epoch in range(self.n_epoch):
             for i, row in x_train.iterrows():
 
-                y_hat = self.predict_proba(row, coef_)
-
-                if num_of_epoch == 0:
-                    self.log_loss_error_first.append((y_train[i] * math.log(y_hat) +
-                                                     (1 - y_train[i]) * math.log(1 - y_hat)) / -n)
-
-                if num_of_epoch == self.n_epoch - 1:
-                    self.log_loss_error_last.append((y_train[i] * math.log(y_hat) +
-                                                    (1 - y_train[i]) * math.log(1 - y_hat)) / -n)
+                y_hat = self.predict_proba(row, weights)
 
                 # update all weights
                 for j, x in enumerate(row):
-                    coef_[j] -= self.l_rate * (y_hat - y_train[i]) * x / n
+                    weights[j] -= self.l_rate * (y_hat - y_train[i]) * x / n
 
-        # redefine weights
-        self.coef_ = coef_
+        self.weights = weights  # redefine weights
 
-    def predict(self, X_test, cut_off=0.5):
-        x_test = X_test.copy()
+    def predict(self, x_test, cut_off=0.5):
+        x_test = x_test.copy()
 
         if self.fit_intercept:
             x_test.insert(0, 'x_0', 1.0)
 
-        y_pred = []
+        predict = []
         for i, row in x_test.iterrows():
-            y_hat = self.predict_proba(row, self.coef_)
+            y_hat = self.predict_proba(row, self.weights)
             if y_hat < cut_off:
-                y_pred.append(0)
+                predict.append(0)
             else:
-                y_pred.append(1)
+                predict.append(1)
 
-        return y_pred  # predictions are binary values - 0 or 1
+        return predict  # predictions are binary values - 0 or 1
 
 
 # input data
+used_params = ['worst concave points', 'worst perimeter', 'worst radius']
+params_values = [float(input(f"Enter the value of the parameter '{i}': ")) for i in used_params]
+params_values = dict(zip(used_params, params_values))
+params_values = pd.DataFrame(data=params_values, index=[0])
+print('\nUSED PARAMETERS:', params_values, sep='\n')
+
+# load training dataset
 data = load_breast_cancer(as_frame=True)
-X = pd.DataFrame(data['data'], columns=['worst concave points', 'worst perimeter', 'worst radius'])
-y = data['target']
+X = pd.DataFrame(data['data'], columns=used_params)
+Y = data['target']
 
 # standardize X
 scaler = StandardScaler()
 X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
 
 # split train-test
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=43)
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=0.8, random_state=43)
 
 # create the class instances
-clr = CustomLogisticRegression(n_epoch=1000)
-lr = LogisticRegression(max_iter=1000)
+print('\nPlease, wait while the result is predicted...')
+clr = CustomLogisticRegression()
+lr = LogisticRegression(max_iter=100)
+
+# output lists
+accuracies = []
+predicts = []
 
 # fit the custom model via mse method
-clr.fit_mse(X_train, y_train)
-mse_y_pred = clr.predict(X_test)
-mse_accuracy = accuracy_score(y_test, mse_y_pred)
+clr.fit_mse(X_train, Y_train)
+accuracies.append(round(accuracy_score(Y_test, clr.predict(X_test)), 3))
+predicts.append(clr.predict(params_values))
 
 # fit the custom model via log_loss method
-clr.fit_log_loss(X_train, y_train)
-log_loss_error_first = clr.log_loss_error_first
-log_loss_error_last = clr.log_loss_error_last
-log_loss_y_pred = clr.predict(X_test)
-log_loss_accuracy = accuracy_score(y_test, log_loss_y_pred)
+clr.fit_log_loss(X_train, Y_train)
+accuracies.append(round(accuracy_score(Y_test, clr.predict(X_test)), 3))
+predicts.append(clr.predict(params_values))
 
 # fit the sklearn model
-lr.fit(X_train, y_train)
-sklearn_accuracy = lr.score(X_test, y_test)
+lr.fit(X_train, Y_train)
+accuracies.append(round(lr.score(X_test, Y_test), 3))
+predicts.append(lr.predict(params_values))
 
-# output the result
-answer_dict = {'mse_accuracy': mse_accuracy,
-               'logloss_accuracy': log_loss_accuracy,
-               'sklearn_accuracy': sklearn_accuracy,
-               'mse_error_first': mse_error_first,
-               'mse_error_last': mse_error_last,
-               'logloss_error_first': log_loss_error_first,
-               'logloss_error_last': log_loss_error_last}
+# output the result as Dataframe
+result = {'predict': predicts, 'accuracy': accuracies}
+result = pd.DataFrame(data=result, index=['mse', 'log-loss', 'sklearn'])
 
-print(answer_dict)
-
-print(f'''answers to the questions:
-1) {round(min(mse_error_first), 5)}
-2) {round(min(mse_error_last), 5)}
-3) {round(max(log_loss_error_first), 5)}
-4) {round(max(log_loss_error_last), 5)}
-5) expanded
-6) expanded''')
+print('\nRESULT:\n', result)
+print('\nwhere: [0] - MALIGNANT, [1] - BENIGN')
